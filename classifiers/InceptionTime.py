@@ -9,8 +9,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
+from classifiers.DL_classifier import DL_classifier
+
+# from torch.utils.data import Dataset
+# from torch.utils.data import DataLoader
 
 class Inception_module(pl.LightningModule):
     def __init__(self, input_c, kernel_size=41, bottleneck_size=32, nb_filters = 32):
@@ -89,7 +91,7 @@ class Shortcut_layer(pl.LightningModule):
         
         return x
 class Inception(pl.LightningModule):
-    def __init__(self, nb_classes, lr, lr_factor, lr_patience, use_residual=True, depth=6):
+    def __init__(self, nb_classes=2, lr=0.001, lr_factor=0.5, lr_patience=50, use_residual=True, depth=6):
         super().__init__()
         
         self.lr = lr
@@ -176,55 +178,56 @@ class Inception(pl.LightningModule):
         return { 'optimizer': optimizer, 'lr_scheduler': { 'scheduler': scheduler, 'monitor': 'test_loss'} }
         
 
-class Dataset_torch(Dataset):
+# class Dataset_torch(Dataset):
 
-    def __init__(self, data,with_label=True):
-        self.with_label =  with_label
+#     def __init__(self, data,with_label=True):
+#         self.with_label =  with_label
         
-        if self.with_label:
-            self.data_x, self.data_y = data
-        else:
-            self.data_x = data
-    def __len__(self):
-        return len(self.data_x)
+#         if self.with_label:
+#             self.data_x, self.data_y = data
+#         else:
+#             self.data_x = data
+#     def __len__(self):
+#         return len(self.data_x)
 
-    def __getitem__(self, idx):
-        if self.with_label:
-            return self.data_x[idx], self.data_y[idx]
-        else:
-            return self.data_x[idx]
+#     def __getitem__(self, idx):
+#         if self.with_label:
+#             return self.data_x[idx], self.data_y[idx]
+#         else:
+#             return self.data_x[idx]
     
-class Classifier_InceptionTime:
+class Classifier_InceptionTime(DL_classifier):
     def __init__(self, nb_classes, lr =0.001, lr_factor = 0.5, lr_patience=50):
         self.model = Inception(nb_classes, lr, lr_factor, lr_patience)
+        super().__init__(self.model)
         
-    def fit(self, x_train, y_train, x_val, y_val, batch_size, earlystopping=False, et_patience=10, max_epochs=50, gpu = [0], default_root_dir = None):
-        train_set = Dataset_torch([x_train, y_train])
-        test_set = Dataset_torch([x_val, y_val])
+#     def fit(self, x_train, y_train, x_val, y_val, batch_size, earlystopping=False, et_patience=10, max_epochs=50, gpu = [0], default_root_dir = None):
+#         train_set = Dataset_torch([x_train, y_train])
+#         test_set = Dataset_torch([x_val, y_val])
         
-        data_loader_train = torch.utils.data.DataLoader(dataset=train_set, batch_size=batch_size,shuffle=True,num_workers=4)
-        data_loader_test = torch.utils.data.DataLoader(dataset=test_set, batch_size=batch_size,shuffle=True,num_workers=4)
+#         data_loader_train = torch.utils.data.DataLoader(dataset=train_set, batch_size=batch_size,shuffle=True,num_workers=4)
+#         data_loader_test = torch.utils.data.DataLoader(dataset=test_set, batch_size=batch_size,shuffle=True,num_workers=4)
         
         
-        if not earlystopping:
-            self.trainer = pl.Trainer( gpus=gpu,max_epochs= max_epochs, default_root_dir= default_root_dir)
+#         if not earlystopping:
+#             self.trainer = pl.Trainer( gpus=gpu,max_epochs= max_epochs, default_root_dir= default_root_dir)
         
-        elif earlystopping:
-            early_stop_callback = EarlyStopping(
-            monitor='test_loss',
-            min_delta=0.00,
-            patience=et_patience,
-            verbose=True)
+#         elif earlystopping:
+#             early_stop_callback = EarlyStopping(
+#             monitor='test_loss',
+#             min_delta=0.00,
+#             patience=et_patience,
+#             verbose=True)
             
-            self.trainer = pl.Trainer(  gpus=gpu,max_epochs= max_epochs, callbacks=[early_stop_callback], default_root_dir=default_root_dir)
+#             self.trainer = pl.Trainer(  gpus=gpu,max_epochs= max_epochs, callbacks=[early_stop_callback], default_root_dir=default_root_dir)
         
-        self.trainer.fit(self.model, data_loader_train, data_loader_test)
+#         self.trainer.fit(self.model, data_loader_train, data_loader_test)
         
-    def predict(self, x_pred, batch_size,gpu=[0]):
-        pred_set = Dataset_torch(x_pred,with_label=False)
-        data_loader_pred = torch.utils.data.DataLoader(dataset=pred_set, batch_size=batch_size,num_workers=4)
-        trainer = pl.Trainer(gpus=gpu)
-        pred = self.trainer.predict(model=self.model,dataloaders = data_loader_pred)
-        y_pre = torch.tensor([torch.argmax(i) for i in torch.cat(pred)])
-        return y_pre
+#     def predict(self, x_pred, batch_size,gpu=[0]):
+#         pred_set = Dataset_torch(x_pred,with_label=False)
+#         data_loader_pred = torch.utils.data.DataLoader(dataset=pred_set, batch_size=batch_size,num_workers=4)
+#         trainer = pl.Trainer(gpus=gpu)
+#         pred = self.trainer.predict(model=self.model,dataloaders = data_loader_pred)
+#         y_pre = torch.tensor([torch.argmax(i) for i in torch.cat(pred)])
+#         return y_pre
         

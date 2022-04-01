@@ -1,3 +1,5 @@
+import multiprocessing
+
 class GridSearchCV:
     def __init__(self, model,para_list,n_splits=7,n_process=10):
         self.model = model
@@ -8,7 +10,7 @@ class GridSearchCV:
     def fit(self, x_data_cv, y_data_cv):
         pool = multiprocessing.Pool(processes=self.n_process)
     
-        kf = KFold(n_splits=self.n_splits)
+        kf = StratifiedKFold(n_splits=n_splits)
         
         self.accuracy_mean_list = []
         self.accuracy_std_list = []
@@ -18,7 +20,7 @@ class GridSearchCV:
         for para in self.para_list:
 
             accuracy = []
-            for train_index, test_index in kf.split(x_data_cv):
+            for train_index, test_index in kf.split(x_data_cv,y_data_cv):
                 
 
                 accuracy.append( pool.apply_async(accuracy_end_to_end,args=(self.model(**para),x_data_cv[train_index], y_data_cv[train_index],x_data_cv[test_index],y_data_cv[test_index])))

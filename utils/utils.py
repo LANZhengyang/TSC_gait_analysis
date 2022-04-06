@@ -279,11 +279,16 @@ class GridSearchCV:
 #     print('n_cycles:',n_cycle)
 
 
-def error_patient_cycle(x_test,y_test,y_d,cycle_end_idx,pre_list,threshold=1):
+def error_patient_cycle(x_test,y_test,y_d,cycle_end_idx,pre_list,threshold=1,nb_classes=2):
+
+    y_test = y_test.astype(int)
+
     cum_list = np.cumsum([len(find_cycles_idx_by_patient_idx(i,cycle_end_idx)) for i in x_test])
     
-    n_subject_l = 0
-    n_subject_r = 0
+    
+    n_subject = np.zeros(nb_classes,dtype=int)
+    
+    
     n_cycle = 0
     n_patient_well_pre = 0
     
@@ -294,7 +299,9 @@ def error_patient_cycle(x_test,y_test,y_d,cycle_end_idx,pre_list,threshold=1):
         if isinstance(pre_list[find_cycles_idx_by_patient_idx(i,cum_list)],np.ndarray):
             y_pre = pre_list[find_cycles_idx_by_patient_idx(i,cum_list)].astype(int)
         else:
-            y_pre = pre_list[find_cycles_idx_by_patient_idx(i,cum_list)].numpy()
+            y_pre = pre_list[find_cycles_idx_by_patient_idx(i,cum_list)].numpy().astype(int)
+
+
         y_true = y_d[patients_idx_to_cycles_idx(x_test,cycle_end_idx)][find_cycles_idx_by_patient_idx(i,cum_list)].astype(int)
         
         print('-----------------------------')
@@ -309,56 +316,41 @@ def error_patient_cycle(x_test,y_test,y_d,cycle_end_idx,pre_list,threshold=1):
         print('n_error=',n_error)
         print()
         
-        n_subject_l_one = 0
-        n_subject_r_one = 0
+        n_subject_one = np.zeros(nb_classes,dtype=int)
+        
         
         if n_error:
-            if y_test[i] == 1:
-                n_subject_r+=1
-                n_subject_r_one+=n_error
-
-            elif y_test[i] == 0:
-                n_subject_l+=1
-                n_subject_l_one+=n_error
+            n_subject[int(y_test[i])]+=1
+            n_subject_one[int(y_test[i])] += n_error
 
             n_cycle += n_error
-  
-        print('r',n_subject_r_one)  
-        print('l',n_subject_l_one)
-        print('pre_list',y_pre)
-        print('y_true',y_true)
         
+        print('error in label '+str(y_test[i])+'=', n_subject_one[int(y_test[i])])    
+        print('pre_list',y_pre)
+
         print('y_test[i]',y_test[i])
         print('majority:', np.argmax(np.bincount(y_pre)))
         
-        if y_test[i] == 1 and np.argmax(np.bincount(y_pre))==1 and n_error!=0:
+        if y_test[i] == np.argmax(np.bincount(y_pre)) and n_error!=0:
             n_patient_well_pre+=1
             
-            print('well predict for class 1')
-        
-        elif y_test[i] == 0 and np.argmax(np.bincount(y_pre))==0 and n_error!=0:
-            n_patient_well_pre+=1
-            
-            print('well predict for class 0')
-            
-        elif y_test[i] == 2 and np.argmax(np.bincount(y_pre))==2 and n_error!=0:
-            n_patient_well_pre+=1   
-            print('well predict for class 2')
+            print('well predict for class '+str(y_test[i]))
             
         elif n_error==0:
             n_patient_well_pre+=1
             
             print('well predict for no error')
 
-    print('- Origin -')    
-    print('n_subject_1:',len(y_test[y_test==1]))
-    print('n_subject_0:',len(y_test[y_test==0]))
+    print('- Origin -')   
+    for i in range(nb_classes):
+        print('n_subject_'+str(i)+'=',len(y_test[y_test==i]))
     print('n_subject:',len(y_test))
     print('n_patient_well_pre_majority:',n_patient_well_pre)
     print('n_cycles:',len(patients_idx_to_cycles_idx(x_test,cycle_end_idx)))
 
-    print('- Error -')    
-    print('n_subject_1:',n_subject_r)
-    print('n_subject_0:',n_subject_l)
-    print('n_subject:',n_subject_r+n_subject_l)
+    print('- Error -')
+    for i in range(nb_classes):
+        print('n_subject_'+str(i)+'=',n_subject[i])
+
+    print('n_subject:',np.sum(n_subject))
     print('n_cycles:',n_cycle)
